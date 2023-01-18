@@ -1,56 +1,61 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Head, Table } from "./waiting-room.styles";
+import { io } from "socket.io-client";
 import { socket } from "../../App";
+
+export interface ChatRooms {
+  rooms: number[];
+  chatRoomNo?: number;
+}
 
 interface CreateRoomResponse {
   success: boolean;
   payload: string;
-  response: Response;
+  response: ChatRooms;
 }
 interface Response {
-  chatRoomNo: number;
+  chatRooms: number;
 }
 
 const WaitingRoom = () => {
-  const [rooms, setRooms] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<number[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const roomListHandler = (rooms: string[]) => {
-      setRooms(["29"]);
+    const roomListHandler = (rooms: number[]) => {
+      setRooms(rooms);
     };
-    const createRoomHandler = (newRoom: string) => {
+    const createRoomHandler = (newRoom: number) => {
       setRooms((prevRooms) => [...prevRooms, newRoom]);
     };
-    const deleteRoomHandler = (boardNo: string) => {
+    const deleteRoomHandler = (boardNo: number) => {
       setRooms((prevRooms) => prevRooms.filter((room) => room !== boardNo));
     };
 
-    socket.emit("room-list", roomListHandler);
-    socket.on("create-room", createRoomHandler);
+    // socket.emit("init-socket", roomListHandler);
+    socket.on("init-socket", createRoomHandler);
     socket.on("delete-room", deleteRoomHandler);
 
     return () => {
-      socket.off("room-list", roomListHandler);
-      socket.off("create-room", createRoomHandler);
+      socket.off("init-socket", createRoomHandler);
       socket.off("delete-room", deleteRoomHandler);
     };
   }, []);
 
   const onCreateRoom = useCallback(() => {
     const boardNo = prompt("방 이름을 입력해 주세요.");
+    const userNo = prompt("유저 no");
+
     if (!boardNo) return alert("방 이름은 반드시 입력해야 합니다.");
 
-    socket.emit("create-room", { boardNo }, ({ response }: CreateRoomResponse) => {
-      console.log(response.chatRoomNo);
-
-      navigate(`/room/${response.chatRoomNo}`);
+    socket.emit("init-socket", { userNo }, ({ response }: CreateRoomResponse) => {
+      navigate(`/room/${response.chatRoomNo}`, { state: { userNo: userNo } });
     });
   }, [navigate]);
 
   const onJoinRoom = useCallback(
-    (chatRoomNo: string) => () => {
+    (chatRoomNo: number) => () => {
       socket.emit("join-room", { chatRoomNo }, ({ response }: CreateRoomResponse) => {
         navigate(`/room/${response.chatRoomNo}`);
       });

@@ -3,8 +3,20 @@ import Chatroom from "./pages/chatroom/chatroom";
 import WaitingRoom from "./pages/waiting-room/waiting-room";
 import { io } from "socket.io-client";
 
+function getToken() {
+  const token = prompt("토큰?");
+  if (!token) {
+    alert("경고@");
+  }
+  return token;
+}
+
 // 웹소켓 연결 및 소켓 인스턴스 생성
-export const socket = io("http://localhost:4000/chat");
+export let socket = io("http://localhost:4000/chat", {
+  auth: {
+    token: getToken(),
+  },
+});
 
 const App = () => {
   return (

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Head, Table } from "./waiting-room.styles";
-import { io } from "socket.io-client";
 import { socket } from "../../App";
 
 export interface ChatRooms {
   rooms: number[];
   chatRoomNo?: number;
+  roomName: string;
 }
 
 interface CreateRoomResponse {
@@ -14,51 +14,62 @@ interface CreateRoomResponse {
   payload: string;
   response: ChatRooms;
 }
-interface Response {
-  chatRooms: number;
+
+interface Room {
+  chatRoomNo: number;
+  roomName: string;
+  chatROomUsers: number[];
 }
 
+const userNo = prompt("유저 번호");
+
 const WaitingRoom = () => {
-  const [rooms, setRooms] = useState<number[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const roomListHandler = (rooms: number[]) => {
-      setRooms(rooms);
+    const roomListHandler = ({ response }: any) => {
+      console.log(response);
+
+      const chatRoom: Room[] = response.chatRooms;
+      setRooms(chatRoom);
     };
-    const createRoomHandler = (newRoom: number) => {
+    const createRoomHandler = (newRoom: any) => {
       setRooms((prevRooms) => [...prevRooms, newRoom]);
     };
-    const deleteRoomHandler = (boardNo: number) => {
-      setRooms((prevRooms) => prevRooms.filter((room) => room !== boardNo));
-    };
+    // const deleteRoomHandler = (boardNo: number) => {
+    //   setRooms((prevRooms) => prevRooms.filter((room) => room !== boardNo));
+    // };
 
-    // socket.emit("init-socket", roomListHandler);
+    socket.emit("init-socket", roomListHandler);
     socket.on("init-socket", createRoomHandler);
-    socket.on("delete-room", deleteRoomHandler);
+    socket.on("create-room", createRoomHandler);
+
+    // socket.on("delete-room", deleteRoomHandler);
 
     return () => {
       socket.off("init-socket", createRoomHandler);
-      socket.off("delete-room", deleteRoomHandler);
+      // socket.off("delete-room", deleteRoomHandler);
     };
   }, []);
 
   const onCreateRoom = useCallback(() => {
-    const boardNo = prompt("방 이름을 입력해 주세요.");
-    const userNo = prompt("유저 no");
+    const boardNo = prompt("게시글 번호");
 
     if (!boardNo) return alert("방 이름은 반드시 입력해야 합니다.");
 
-    socket.emit("init-socket", { userNo }, ({ response }: CreateRoomResponse) => {
-      navigate(`/room/${response.chatRoomNo}`, { state: { userNo: userNo } });
+    socket.emit("create-room", { boardNo }, ({ response }: CreateRoomResponse) => {
+      navigate(`/room/${response.chatRoomNo}`, {
+        state: { userNo: userNo, roomName: response.roomName },
+      });
     });
   }, [navigate]);
 
   const onJoinRoom = useCallback(
-    (chatRoomNo: number) => () => {
-      socket.emit("join-room", { chatRoomNo }, ({ response }: CreateRoomResponse) => {
-        navigate(`/room/${response.chatRoomNo}`);
-      });
+    (chatRoomNo: number, roomName: string) => () => {
+      console.log(roomName);
+
+      navigate(`/room/${chatRoomNo}`, { state: { userNo, chatRoomNo, roomName } });
     },
     [navigate]
   );
@@ -80,11 +91,11 @@ const WaitingRoom = () => {
         </thead>
         <tbody>
           {rooms.map((room, index) => (
-            <tr key={room}>
-              <td>{index + 1}</td>
-              <td>{room}</td>
+            <tr key={room.chatRoomNo}>
+              <td>{room.chatRoomNo}</td>
+              <td>{room.roomName}</td>
               <td>
-                <button onClick={onJoinRoom(room)}>입장하기</button>
+                <button onClick={onJoinRoom(room.chatRoomNo, room.roomName)}>입장하기</button>
               </td>
             </tr>
           ))}

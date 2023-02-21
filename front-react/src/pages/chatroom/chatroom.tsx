@@ -3,6 +3,7 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import { useLocation, useNavigate } from "react-router-dom";
 import { socket } from "../../App";
 import { ChatContainer, LeaveButton, Message, MessageBox, MessageForm } from "./chatroom.styles";
+import axios from "axios";
 
 interface IChat {
   userNo: string;
@@ -21,7 +22,6 @@ const ChatRoom = () => {
   const userNo = state.userNo;
   const chatRoomNo = state.chatRoomNo;
   const roomName = state.roomName;
-  console.log(roomName);
 
   socket.id = userNo;
 
@@ -36,12 +36,15 @@ const ChatRoom = () => {
       chatContainer.scrollTop = scrollHeight - clientHeight;
     }
   }, [chats.length]);
-
   // message event listener
   useEffect(() => {
     const messageHandler = (chat: IChat) => setChats((prevChats) => [...prevChats, chat]);
     socket.on("message", messageHandler);
-
+    const getAPI = async () => {
+      const res = await axios.get("http://localhost:3000/chats/14/current-chat-log");
+      console.log(res.data.response);
+    };
+    getAPI();
     return () => {
       socket.off("message", messageHandler);
     };

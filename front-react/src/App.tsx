@@ -10,9 +10,9 @@ function getToken() {
   }
   return token;
 }
-
+const URL = process.env.REACT_APP_MAIN_SERVER as string;
 // 웹소켓 연결 및 소켓 인스턴스 생성
-export let socket = io("http://localhost:4000/chat", {
+export let socket = io(URL, {
   auth: {
     token: getToken(),
   },

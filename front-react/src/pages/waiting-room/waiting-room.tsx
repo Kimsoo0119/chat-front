@@ -4,9 +4,11 @@ import { Head, Table } from "./waiting-room.styles";
 import { socket } from "../../App";
 
 export interface ChatRooms {
-  rooms: number[];
-  chatRoomNo?: number;
-  roomName: string;
+  chatRoom: {
+    rooms: number[];
+    chatRoomNo?: number;
+    roomName: string;
+  };
 }
 
 interface CreateRoomResponse {
@@ -17,22 +19,27 @@ interface CreateRoomResponse {
 
 interface Room {
   chatRoomNo: number;
-  roomName: string;
-  chatROomUsers: number[];
+  roomName?: any;
+  chatRoomUsers?: number[];
 }
 
 const userNo = prompt("유저 번호");
 
 const WaitingRoom = () => {
+  if (userNo) {
+    socket.id = userNo;
+  }
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const roomListHandler = ({ response }: any) => {
-      console.log(response);
+      if (response.chatRooms) {
+        const chatRoom: Room[] = response.chatRooms;
 
-      const chatRoom: Room[] = response.chatRooms;
-      setRooms(chatRoom);
+        setRooms(chatRoom);
+      }
     };
     const createRoomHandler = (newRoom: any) => {
       setRooms((prevRooms) => [...prevRooms, newRoom]);
@@ -59,20 +66,23 @@ const WaitingRoom = () => {
     if (!boardNo) return alert("방 이름은 반드시 입력해야 합니다.");
 
     socket.emit("create-room", { boardNo }, ({ response }: CreateRoomResponse) => {
-      navigate(`/room/${response.chatRoomNo}`, {
-        state: { userNo: userNo, roomName: response.roomName },
+      const chatRoom = response.chatRoom;
+      navigate(`/room/${chatRoom.chatRoomNo}`, {
+        state: { userNo: userNo, roomName: chatRoom.roomName },
       });
     });
   }, [navigate]);
 
   const onJoinRoom = useCallback(
     (chatRoomNo: number, roomName: string) => () => {
-      console.log(roomName);
-
       navigate(`/room/${chatRoomNo}`, { state: { userNo, chatRoomNo, roomName } });
     },
     [navigate]
   );
+
+  rooms.map((room, idx) => {
+    console.log(room);
+  });
 
   return (
     <>
